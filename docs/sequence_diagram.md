@@ -20,12 +20,14 @@ sequenceDiagram
     Python client ->> ppmac TCP: sendall
 
     par
-        loop while(1)
+        loop do while(socketStatus)
             ppmac server ->> ppmac TCP: HandleClient()
-            ppmac TCP ->> ppmac server: return packed_data
-            ppmac server ->> ppmac Buffer: bufferwrite()
+            ppmac TCP -> ppmac server: return message
+            ppmac TCP -> ppmac server: return frame_bytesize
+            ppmac TCP -> ppmac server: return socketStatus
+            ppmac server ->> ppmac Buffer: write_frame()
         end
-        loop rt
+        loop RT
             ppmac Trajectory ->>+ ppmac Buffer: Copy to MasterEnc
             ppmac Buffer ->- ppmac Trajectory: Position
         end
