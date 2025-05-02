@@ -2,8 +2,8 @@
 
 int main() {
     #ifdef TEST_ENV
-    pushm = (void *)malloc(sizeof(pushm));  // HACK
-    pshm = (void *)malloc(sizeof(pshm));    // HACK
+    pushm = (void *)malloc(1024*1024);          // HACK
+    // pshm = (void *)malloc(sizeof(struct SHM));  // HACK
 
     #else
     struct sched_param param;
@@ -31,16 +31,38 @@ int main() {
     InitLibrary();  // Required for accessing Power PMAC library
     #endif // TEST_ENV
 
+    Point *array[7] = {};
+    char *frame_types = "ddddddd";
+    size_t frame_bytesize = 0x00000000;
+
     char *host = "127.0.0.1";
     int port = 8080;
+    size_t data_count = 7;
+    int clientSock, socketStatus;
+    char message[BUFFSIZE];
+    double tmp[7] = {};
 
+    init_buffer(frame_types, array, &frame_bytesize);
     InitSocket(host, port);
-    AcceptClient();
-    CloseSocket(serverSock);
+    clientSock = AcceptClient();
+    do {
+        // TODO: Add busy-wait here until buffer is clear to be overwritten?
+        socketStatus = HandleClient(clientSock, message, frame_bytesize);
 
-    #ifdef TEST_ENV
-    free(pushm);
-    #else
+        // write_frame(frame_types, array, frame_bytesize, message)
+        memcpy(tmp, message, frame_bytesize);
+        for (int i=0; i<data_count; i++) {
+            printf("tmp[%d] = %f", i,  tmp[i]);
+        }
+
+        memcpy(&array[0]->d, message, frame_bytesize);
+        update_buffer(frame_types, array,frame_bytesize);
+        // test_print_data(array, data_count);
+    } while (socketStatus == 0);
+
+    CloseSocket(clientSock);
+    CloseSocket(serverSock);
+    #ifndef TEST_ENV
     CloseLibrary();
     #endif // TEST_ENV
     return 0;
