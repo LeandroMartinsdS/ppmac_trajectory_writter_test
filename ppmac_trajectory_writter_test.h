@@ -16,5 +16,18 @@
     #endif // TEST_ENV
     int serverSock;
 
-#endif // TRAJ_WRITTER_H
+    typedef enum {
+        IDLE,
+        WRITING,
+        READY,
+        EXECUTING
+    } bufferStatus;
 
+    typedef enum {
+        BUFFER_A,
+        BUFFER_B
+        // ...
+    } bufferIndex;
+
+    #define COUNT_ENUM_ITEMS(enumType)  sizeof(enumType)/sizeof(enumType[0])
+#endif // TRAJ_WRITTER_H

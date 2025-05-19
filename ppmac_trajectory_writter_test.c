@@ -40,24 +40,44 @@ int main() {
     size_t data_count = 7;
     int clientSock, socketStatus;
     char message[BUFFSIZE];
-    double tmp[7] = {};
 
-    init_buffer(frame_types, array, &frame_bytesize);
+    size_t frames_per_buffer = 10000;
+    unsigned int write_idx = 0;
+    unsigned int traj_idx = 0;
+
+    unsigned int buffer_num = COUNT_ENUM_ITEMS(bufferIndex);
+
+    bufferIndex buffer_idx = BUFFER_A;
+    bufferStatus buffer_status[2] = 0;
+
+    size_t address_offset;
+    void* base_memory;
     InitSocket(host, port);
+    // TODO: Update AcceptClient to receive clientSock and return status
     clientSock = AcceptClient();
     do {
-        // TODO: Add busy-wait here until buffer is clear to be overwritten?
-        socketStatus = HandleClient(clientSock, message, frame_bytesize);
+        while (write_idx < frames_per_buffer) {
+            // if (frames_per_buffer == 0) {
+            //     break;
+            // }
 
-        // write_frame(frame_types, array, frame_bytesize, message)
-        memcpy(tmp, message, frame_bytesize);
-        for (int i=0; i<data_count; i++) {
-            printf("tmp[%d] = %f", i,  tmp[i]);
+            address_offset = buffer_idx * frame_bytesize * frames_per_buffer;
+            base_memory = (void *)USHM_BASE_ADDR + address_offset;
+            init_buffer(frame_types, array, &frame_bytesize, base_memory);
+            // while (buffer_status != IDLE) { /*sleep*/};
+            // buffer_status = WRITING;
+            socketStatus = HandleClient(clientSock, message, frame_bytesize);
+            // write_frame(frame_types, array, frame_bytesize, message)
+            memcpy(&array[0]->d, message, frame_bytesize);
+            update_buffer(frame_types, array,frame_bytesize);
+            write_idx++;
+            traj_idx++;
         }
 
-        memcpy(&array[0]->d, message, frame_bytesize);
-        update_buffer(frame_types, array,frame_bytesize);
-        // test_print_data(array, data_count);
+        buffer_status = READY;
+        buffer_idx = (buffer_idx+1) % buffer_num;
+        write_idx = 0;
+        // TODO Add response to client
     } while (socketStatus == 0);
 
     CloseSocket(clientSock);
